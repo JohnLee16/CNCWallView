@@ -147,7 +147,7 @@ namespace WallLine3DView
         public bool HoleModelCreater(BimWall bimWall, ModelVisual3D wallModel)
         {
             float EPSILON = 0.001f;
-            float holeModelOffset = 0.01f;
+            float holeModelOffset = 0.02f;
             for (int hole_id = 0; hole_id < bimWall.Holes.Length; hole_id++)
             {
                 if (Math.Abs(bimWall.Holes[hole_id].Normal.Y - 1) < EPSILON)
@@ -354,10 +354,10 @@ namespace WallLine3DView
                 ModelVisual3D rebarMount = new ModelVisual3D();
                 if (IsRebarMountInside(bimWall.RebarMounts[mount_id], wallContour))
                 {
-                    rebarMount = RebarMount(bimWall.RebarMounts[mount_id], Math.Min(bimWall.Thickness - bimWall.RebarMounts[mount_id].StartPoint.Y, bimWall.RebarMounts[mount_id].StartPoint.Y), Colors.Black, true);
+                    rebarMount = RebarMount(bimWall.RebarMounts[mount_id], Math.Min(bimWall.Thickness - bimWall.RebarMounts[mount_id].StartPoint.Y, bimWall.RebarMounts[mount_id].StartPoint.Y), bimWall.Thickness, Colors.Black, true);
                 }
                 else
-                    rebarMount = RebarMount(bimWall.RebarMounts[mount_id], Math.Min(bimWall.Thickness - bimWall.RebarMounts[mount_id].StartPoint.Y, bimWall.RebarMounts[mount_id].StartPoint.Y), Colors.Black);
+                    rebarMount = RebarMount(bimWall.RebarMounts[mount_id], Math.Min(bimWall.Thickness - bimWall.RebarMounts[mount_id].StartPoint.Y, bimWall.RebarMounts[mount_id].StartPoint.Y), bimWall.Thickness ,Colors.Black);
                 
                 wallModel.Children.Add(rebarMount);
             }            
@@ -401,23 +401,22 @@ namespace WallLine3DView
         //    _wallModel.Children.Add(wallModel);
         //    return _wallModel;
         //}
-        public ModelVisual3D RebarMount(BimRebarMount bimRebarMount, float rebarMountDepth, Color color)
+        public ModelVisual3D RebarMount(BimRebarMount bimRebarMount, float rebarMountDepth, float wallThickness, Color color)
         {
             float EPSILON = 0.001f;
-            double rebarMountDiameter = 20 + 0.006;
-            double rebarMountVisualOffset = 0.01;
-            double rebarMountOffset = 15;
-            double rebarMountDistance = 10;
+            double rebarMountDiameter = 20;
+            double rebarMountVisualOffset = 0.5;
+            double rebarMountOffset = 15;            
             
             ModelVisual3D rebarMountVisual3D = new ModelVisual3D();
             
-            if (bimRebarMount.Orientation == true)
+            if (bimRebarMount.StartPoint.Y <= wallThickness / 2)
             {
-                Point3D boxCenter = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X + rebarMountOffset / 2, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y / 2) : new Point3D(bimRebarMount.StartPoint.X - rebarMountOffset / 2, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y / 2);
-                Point3D cylinderCenter1 = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X + rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y - rebarMountVisualOffset) : new Point3D(bimRebarMount.StartPoint.X - rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y - rebarMountVisualOffset);
-                Point3D cylinderCenter2 = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X + rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y - rebarMountDepth - rebarMountVisualOffset) : new Point3D(bimRebarMount.StartPoint.X - rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y - rebarMountDepth - rebarMountVisualOffset);
+                Point3D boxCenter = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X + rebarMountOffset / 2 - rebarMountVisualOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y - rebarMountDepth / 2) : new Point3D(bimRebarMount.StartPoint.X - rebarMountOffset / 2 + rebarMountVisualOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y - rebarMountDepth / 2);
+                Point3D cylinderCenter1 = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X + rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y - rebarMountVisualOffset / 2) : new Point3D(bimRebarMount.StartPoint.X - rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y - rebarMountVisualOffset / 2);
+                Point3D cylinderCenter2 = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X + rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y - rebarMountDepth - rebarMountVisualOffset / 2) : new Point3D(bimRebarMount.StartPoint.X - rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y - rebarMountDepth - rebarMountVisualOffset / 2);
                 var rebarMountMeshBuilder = new MeshBuilder(false, false);
-                rebarMountMeshBuilder.AddBox(boxCenter, rebarMountOffset, rebarMountDiameter, rebarMountDepth + rebarMountVisualOffset);//Point3D center, double xlength, double ylength, double zlength
+                rebarMountMeshBuilder.AddBox(boxCenter, rebarMountOffset + rebarMountVisualOffset, rebarMountDiameter, rebarMountDepth + rebarMountVisualOffset);//Point3D center, double xlength, double ylength, double zlength
                 rebarMountMeshBuilder.AddCylinder(cylinderCenter1, cylinderCenter2, rebarMountDiameter / 2, 360, true, true);
                 var rebarMountMesh = rebarMountMeshBuilder.ToMesh(true);
 
@@ -427,11 +426,11 @@ namespace WallLine3DView
 
                 rebarMountVisual3D.Content = rebarMountModelGroup;
             } 
-            else if (bimRebarMount.Orientation == false)
+            else if (bimRebarMount.StartPoint.Y > wallThickness / 2)
             {
-                Point3D boxCenter = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X + rebarMountOffset / 2, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountDepth / 2) : new Point3D(bimRebarMount.StartPoint.X - rebarMountOffset / 2, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountDepth / 2);
-                Point3D cylinderCenter1 = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X + rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountVisualOffset) : new Point3D(bimRebarMount.StartPoint.X - rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountVisualOffset);
-                Point3D cylinderCenter2 = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X + rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountDepth + rebarMountVisualOffset) : new Point3D(bimRebarMount.StartPoint.X - rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountDepth + rebarMountVisualOffset);
+                Point3D boxCenter = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X + rebarMountOffset / 2 - rebarMountVisualOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountDepth / 2) : new Point3D(bimRebarMount.StartPoint.X - rebarMountOffset / 2 + rebarMountVisualOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountDepth / 2);
+                Point3D cylinderCenter1 = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X + rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountVisualOffset / 2) : new Point3D(bimRebarMount.StartPoint.X - rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountVisualOffset / 2);
+                Point3D cylinderCenter2 = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X + rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountDepth + rebarMountVisualOffset / 2) : new Point3D(bimRebarMount.StartPoint.X - rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountDepth + rebarMountVisualOffset / 2);
                 var rebarMountMeshBuilder = new MeshBuilder(false, false);
                 rebarMountMeshBuilder.AddBox(boxCenter, rebarMountOffset, rebarMountDiameter, rebarMountDepth + rebarMountVisualOffset);//Point3D center, double xlength, double ylength, double zlength
                 rebarMountMeshBuilder.AddCylinder(cylinderCenter1, cylinderCenter2, rebarMountDiameter / 2, 360, true, true);
@@ -449,18 +448,17 @@ namespace WallLine3DView
             return rebarMountVisual3D;
         }
 
-        public ModelVisual3D RebarMount(BimRebarMount bimRebarMount, float rebarMountDepth, Color color, bool insideContour)
+        public ModelVisual3D RebarMount(BimRebarMount bimRebarMount, float rebarMountDepth, float wallThickness, Color color, bool insideContour)
         {
             float EPSILON = 0.001f;
             double rebarMountDiameter = 20 + 0.006;
-            double rebarMountVisualOffset = 0.01;
-            double rebarMountOffset = 15;
+            double rebarMountVisualOffset = 0.05;            
 
             ModelVisual3D rebarMountVisual3D = new ModelVisual3D();
-            if (bimRebarMount.Orientation == true)
+            if (bimRebarMount.StartPoint.Y <= wallThickness / 2)
             {
-                Point3D cylinderCenter1 = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X + rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y - rebarMountVisualOffset) : new Point3D(bimRebarMount.StartPoint.X - rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y - rebarMountVisualOffset);
-                Point3D cylinderCenter2 = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X + rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y - rebarMountDepth - rebarMountVisualOffset) : new Point3D(bimRebarMount.StartPoint.X - rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y - rebarMountDepth - rebarMountVisualOffset);
+                Point3D cylinderCenter1 = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y - rebarMountVisualOffset) : new Point3D(bimRebarMount.StartPoint.X, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y - rebarMountVisualOffset);
+                Point3D cylinderCenter2 = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y - rebarMountDepth - rebarMountVisualOffset) : new Point3D(bimRebarMount.StartPoint.X, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y - rebarMountDepth - rebarMountVisualOffset);
                 var rebarMountMeshBuilder = new MeshBuilder(false, false);
                 rebarMountMeshBuilder.AddCylinder(cylinderCenter1, cylinderCenter2, rebarMountDiameter / 2, 360, true, true);
                 var rebarMountMesh = rebarMountMeshBuilder.ToMesh(true);
@@ -471,10 +469,10 @@ namespace WallLine3DView
 
                 rebarMountVisual3D.Content = rebarMountModelGroup;
             }
-            else if (bimRebarMount.Orientation == false)
+            else if (bimRebarMount.StartPoint.Y > wallThickness / 2)
             {                
-                Point3D cylinderCenter1 = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X + rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountVisualOffset) : new Point3D(bimRebarMount.StartPoint.X - rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountVisualOffset);
-                Point3D cylinderCenter2 = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X + rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountDepth + rebarMountVisualOffset) : new Point3D(bimRebarMount.StartPoint.X - rebarMountOffset, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountDepth + rebarMountVisualOffset);
+                Point3D cylinderCenter1 = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountVisualOffset) : new Point3D(bimRebarMount.StartPoint.X, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountVisualOffset);
+                Point3D cylinderCenter2 = Math.Abs(bimRebarMount.Direction.X - 1) < EPSILON ? new Point3D(bimRebarMount.StartPoint.X, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountDepth + rebarMountVisualOffset) : new Point3D(bimRebarMount.StartPoint.X, bimRebarMount.StartPoint.Z, bimRebarMount.StartPoint.Y + rebarMountDepth + rebarMountVisualOffset);
                 var rebarMountMeshBuilder = new MeshBuilder(false, false);                
                 rebarMountMeshBuilder.AddCylinder(cylinderCenter1, cylinderCenter2, rebarMountDiameter / 2, 360, true, true);
                 var rebarMountMesh = rebarMountMeshBuilder.ToMesh(true);
