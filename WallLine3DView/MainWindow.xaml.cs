@@ -64,8 +64,9 @@ namespace WallLine3DView
             Model3DGroup wallModelGroup = new Model3DGroup();
             ModelVisual3D wallFinalModel = new ModelVisual3D();
 
-            StLReader stLReader = new StLReader(); 
+            StLReader stLReader = new StLReader();
 
+            //SliceModelCreater(bimWall, out ModelVisual3D wallModel);
             WallModelCreater(bimWall, out ModelVisual3D wallModel);
 
             RebarSlotModelCreater(bimWall, wallModel);
@@ -531,6 +532,67 @@ namespace WallLine3DView
 
         public bool EnlargeModelView(Model3DGroup model3DGroup)
         {
+            return true;
+        }
+
+        public bool SliceModelCreater(BimWall bimWall, out  ModelVisual3D wallModel)
+        {
+            wallModel = new ModelVisual3D();
+
+            Brush[] brushes = new Brush[8] { Brushes.Red, Brushes.Green, Brushes.Blue, Brushes.Yellow, Brushes.WhiteSmoke, Brushes.Purple, Brushes.Olive, Brushes.Maroon};
+            Color[] colors = new Color[8] { Colors.Red, Colors.Green, Colors.Blue, Colors.Yellow, Colors.WhiteSmoke, Colors.Purple, Colors.Olive, Colors.Maroon};
+            for (int slice_id = 0; slice_id < bimWall.Slices.Length; slice_id++)
+            {                
+                var axis = new Vector3D(0, 0, 1);
+                var render = new ExtrudedVisual3D();
+
+                PointCollection contour = new PointCollection();
+
+                Polygon3D topSurfacePolygon = new Polygon3D();
+                Polygon3D bottomSurfacePolygon = new Polygon3D();
+
+                for (int i = 0; i < bimWall.Slices[slice_id].Contour.Points.Length; i++)
+                {
+                    Point contourPoint = new Point() { X = bimWall.Slices[slice_id].Contour.Points[i].X, Y = bimWall.Slices[slice_id].Contour.Points[i].Y };
+                    Point3D topSurfacePoint = new Point3D() { X = bimWall.Slices[slice_id].Contour.Points[i].X, Y = bimWall.Slices[slice_id].Contour.Points[i].Y, Z = bimWall.Thickness };
+                    Point3D bottomSurfacePoint = new Point3D() { X = bimWall.Slices[slice_id].Contour.Points[i].X, Y = bimWall.Slices[slice_id].Contour.Points[i].Y, Z = 0 };
+                    contour.Add(contourPoint);
+                    topSurfacePolygon.Points.Add(topSurfacePoint);
+                    bottomSurfacePolygon.Points.Add(bottomSurfacePoint);
+                }
+
+                render.Section = contour;
+                render.Path.Add(new Point3D(0, 0, 0));
+                render.Path.Add(new Point3D(0, 0, bimWall.Thickness));
+                render.SectionXAxis = axis;
+                render.Fill = brushes[slice_id];
+                render.IsPathClosed = true;
+                render.IsSectionClosed = true;
+
+                /*Generate top and bottom surface of wall*/
+                var modelGroup = new Model3DGroup();
+                var meshBuilder = new MeshBuilder(false, false, false);
+
+                var topSurface = topSurfacePolygon.Flatten();
+                var bottomSurface = bottomSurfacePolygon.Flatten();
+
+                var topTriangleIndexes = CuttingEarsTriangulator.Triangulate(topSurface.Points);
+                var bottomTriangleIndexes = CuttingEarsTriangulator.Triangulate(bottomSurface.Points);
+                meshBuilder.Append(topSurfacePolygon.Points, topTriangleIndexes);
+                meshBuilder.Append(bottomSurfacePolygon.Points, bottomTriangleIndexes);
+
+                var mesh = meshBuilder.ToMesh(true);
+                var grayMaterial = MaterialHelper.CreateMaterial(colors[slice_id]);
+                var insideMaterial = MaterialHelper.CreateMaterial(colors[slice_id]);
+
+                modelGroup.Children.Add(new GeometryModel3D { Geometry = mesh, Material = grayMaterial, BackMaterial = insideMaterial });
+
+                var visual3D = new ModelVisual3D();
+                visual3D.Content = modelGroup;
+
+                wallModel.Children.Add(visual3D);
+                wallModel.Children.Add(render);
+            }            
             return true;
         }
     }
