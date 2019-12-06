@@ -10,7 +10,7 @@
     <Window.DataContext>
         <local:WallLine3DViewShow></local:WallLine3DViewShow>
     </Window.DataContext>
-    <Grid>        
+    <Grid>
         <HelixToolkit:HelixViewport3D x:Name="helixViewport" Background="Black" ZoomExtentsWhenLoaded="True">
             <HelixToolkit:DefaultLights/>
             <ModelVisual3D Content="{Binding WallModel}"/>
@@ -19,6 +19,8 @@
         </HelixToolkit:HelixViewport3D>
         <Button x:Name="button_open" Content="OpenJsonFile" HorizontalAlignment="Left" Margin="298,26,0,0" VerticalAlignment="Top" Click="Button_Click"/>
         <TextBox x:Name="jsonFilePath" HorizontalAlignment="Left" Height="19" Margin="23,26,0,0" Text="JsonFilePath" TextWrapping="Wrap" VerticalAlignment="Top" Width="262"/>
+        <Button x:Name="slice_view" Content="slice_view" HorizontalAlignment="Left" Margin="419,26,0,0" VerticalAlignment="Top" Click="slice_view_Click"/>
+        <Button x:Name="wall_view" Content="wallview" HorizontalAlignment="Left" Margin="496,26,0,0" VerticalAlignment="Top" Height="19" Click="wall_view_Click"/>
 
     </Grid>
 </Window>

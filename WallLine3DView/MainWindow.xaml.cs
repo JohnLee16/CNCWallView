@@ -59,7 +59,7 @@ namespace WallLine3DView
         {
             ReadJSONFile readJSONFile = new ReadJSONFile();
             readJSONFile.ReadJSONFileLocal(jsonFilePath.Text, out BimWall bimWall);
-            jsonFilePath.Text = jsonFilePath.Text.Split("\\")[jsonFilePath.Text.Split("\\").Length - 1];
+            //jsonFilePath.Text = jsonFilePath.Text.Split("\\")[jsonFilePath.Text.Split("\\").Length - 1];
             ModelVisual3D wall3DModel = new ModelVisual3D();
             Model3DGroup wallModelGroup = new Model3DGroup();
             ModelVisual3D wallFinalModel = new ModelVisual3D();
@@ -606,17 +606,19 @@ namespace WallLine3DView
         public bool HoleModelCreater(BimWall bimWall, ModelVisual3D wallModel, out ModelVisual3D wallHolesModel)
         {
             float EPSILON = 0.1f;
-            float holeModelOffset = 0.06f;
+            float holeModelOffset = 0.08f;
             CuttingPlaneGroup holesModel = new CuttingPlaneGroup();
             ModelVisual3D tempWallModel = new ModelVisual3D();
             wallHolesModel = new ModelVisual3D();
             tempWallModel = wallModel;
             List<double> wallContour_X = new List<double>();
             List<double> wallContour_Y = new List<double>();
+            Vector2[] wallContour = new Vector2[bimWall.Contour.Points.Length];
             for (int i = 0; i < bimWall.Contour.Points.Length; i++)
             {
                 wallContour_X.Add(bimWall.Contour.Points[i].X);
                 wallContour_Y.Add(bimWall.Contour.Points[i].Y);
+                wallContour[i] = new Vector2(bimWall.Contour.Points[i].X, bimWall.Contour.Points[i].Y);
             }
             var planMaterial = MaterialHelper.CreateMaterial(Brushes.LightGray, 100.0f, specularPower: 50, ambient: 200);
             var sidePlaneMaterial = MaterialHelper.CreateMaterial(Brushes.WhiteSmoke, 80, specularPower: 50, ambient: 200);
@@ -668,10 +670,10 @@ namespace WallLine3DView
                         holesModel.CuttingPlanes.Add(plane3Ds);
 
                         tempWallModel.Children.Add(holesModel);
-                        tempWallModel.Children.Add(new RectangleVisual3D { Origin = new Point3D(holeCenter.X, holeContour_Y.Max(), holeCenter.Z), Length = holeContour_X.Max() - holeContour_X.Min(), Width = bimWall.Thickness, Normal = new Vector3D(0, -1, 0), Material = planMaterial });
-                        tempWallModel.Children.Add(new RectangleVisual3D { Origin = new Point3D(holeCenter.X, holeContour_Y.Min(), holeCenter.Z), Length = holeContour_X.Max() - holeContour_X.Min(), Width = bimWall.Thickness, Normal = new Vector3D(0, 1, 0), Material = planMaterial });
-                        tempWallModel.Children.Add(new RectangleVisual3D { Origin = new Point3D(holeContour_X.Max(), holeCenter.Y, holeCenter.Z), Length = bimWall.Thickness, Width = holeContour_Y.Max() - holeContour_Y.Min(), Normal = new Vector3D(-1, 0, 0.0000001), Material = planMaterial });
-                        tempWallModel.Children.Add(new RectangleVisual3D { Origin = new Point3D(holeContour_X.Min(), holeCenter.Y, holeCenter.Z), Length = bimWall.Thickness, Width = holeContour_Y.Max() - holeContour_Y.Min(), Normal = new Vector3D(1, 0, 0.0000001), Material = planMaterial });
+                        tempWallModel.Children.Add(new RectangleVisual3D { Origin = new Point3D(holeCenter.X, holeContour_Y.Max(), holeCenter.Z), Length = holeContour_X.Max() - holeContour_X.Min(), Width = bimWall.Thickness, Normal = new Vector3D(0, -1, 0), Material = planMaterial, BackMaterial = planMaterial });
+                        tempWallModel.Children.Add(new RectangleVisual3D { Origin = new Point3D(holeCenter.X, holeContour_Y.Min(), holeCenter.Z), Length = holeContour_X.Max() - holeContour_X.Min(), Width = bimWall.Thickness, Normal = new Vector3D(0, 1, 0), Material = planMaterial, BackMaterial = planMaterial });
+                        tempWallModel.Children.Add(new RectangleVisual3D { Origin = new Point3D(holeContour_X.Max(), holeCenter.Y, holeCenter.Z), Length = bimWall.Thickness, Width = holeContour_Y.Max() - holeContour_Y.Min(), Normal = new Vector3D(-1, 0, 0.0000001), Material = planMaterial, BackMaterial = planMaterial });
+                        tempWallModel.Children.Add(new RectangleVisual3D { Origin = new Point3D(holeContour_X.Min(), holeCenter.Y, holeCenter.Z), Length = bimWall.Thickness, Width = holeContour_Y.Max() - holeContour_Y.Min(), Normal = new Vector3D(1, 0, 0.0000001), Material = planMaterial, BackMaterial = planMaterial });
                     }
                     else
                     {
@@ -714,7 +716,7 @@ namespace WallLine3DView
                         bool InsidePointExist = false;
                         for (int i = 0; i < bimWall.Holes[hole_id].Contour.Points.Count(); i++)
                         {
-                            if (InPolygon(new Vector2(bimWall.Holes[hole_id].Contour.Points[i].X, bimWall.Holes[hole_id].Contour.Points[i].Y), holeContour, out bool onBoundary))
+                            if (InPolygon(new Vector2(bimWall.Holes[hole_id].Contour.Points[i].X, bimWall.Holes[hole_id].Contour.Points[i].Y), wallContour, out bool onBoundary))
                             { insidePoint = holePoints[i]; InsidePointExist = true; }
                             for (int j = 0; j < bimWall.Contour.Points.Length; j++)
                             {
@@ -723,9 +725,23 @@ namespace WallLine3DView
                             }                            
                         }
                         if (InsidePointExist)
-                        {
-                            tempWallModel.Children.Add(new RectangleVisual3D { Origin = new Point3D(holeContour_X.Min(), holeCenter.Y, holeCenter.Z - (bimWall.Thickness - bimWall.Holes[hole_id].Depth) / 2 - holeModelOffset), Length = holeContour_Y.Max() - holeContour_Y.Min(), Width = bimWall.Thickness, Normal = new Vector3D(1, 0, 0), Material = planMaterial });
+                        {                            
+                            //tempWallModel.Children.Add(new RectangleVisual3D { Origin = new Point3D(holeContour_X.Min(), holeCenter.Y, holeCenter.Z - (bimWall.Thickness - bimWall.Holes[hole_id].Depth) / 2 - holeModelOffset), Length = holeContour_Y.Max() - holeContour_Y.Min(), Width = bimWall.Thickness, Normal = new Vector3D(1, 0, 0), Material = planMaterial });
+                            Point3D originPoint1 = Math.Abs(onSegmentPoints[0].X - insidePoint.X) < EPSILON ? new Point3D(onSegmentPoints[0].X, (onSegmentPoints[0].Y + insidePoint.Y) / 2, holeCenter.Z) : new Point3D((onSegmentPoints[0].X + insidePoint.X) / 2, onSegmentPoints[0].Y, holeCenter.Z);
+                            Point3D originPoint2 = Math.Abs(onSegmentPoints[1].X - insidePoint.X) < EPSILON ? new Point3D(onSegmentPoints[1].X, (onSegmentPoints[1].Y + insidePoint.Y) / 2, holeCenter.Z) : new Point3D((onSegmentPoints[1].X + insidePoint.X) / 2, onSegmentPoints[1].Y, holeCenter.Z);
+                            Vector3D normalPoint1 = new Vector3D();
+                            Vector3D normalPoint2 = new Vector3D();
+                            if (Math.Abs(onSegmentPoints[0].X - insidePoint.X) < EPSILON)
+                                normalPoint1 = Math.Abs(onSegmentPoints[0].X - wallContour_X.Max()) < Math.Abs(onSegmentPoints[0].X - wallContour_X.Min()) ? new Vector3D(1, 0, 0) : new Vector3D(-1, 0, 0);
+                            else
+                                normalPoint1 = Math.Abs(onSegmentPoints[0].Y - wallContour_Y.Max()) < Math.Abs(onSegmentPoints[0].Y - wallContour_Y.Min()) ? new Vector3D(0, 1, 0) : new Vector3D(0, -1, 0);
 
+                            if (Math.Abs(onSegmentPoints[1].X - insidePoint.X) < EPSILON)
+                                normalPoint2 = Math.Abs(onSegmentPoints[1].X - wallContour_X.Max()) < Math.Abs(onSegmentPoints[1].X - wallContour_X.Min()) ? new Vector3D(1, 0, 0) : new Vector3D(-1, 0, 0);
+                            else
+                                normalPoint2 = Math.Abs(onSegmentPoints[1].Y - wallContour_Y.Max()) < Math.Abs(onSegmentPoints[1].Y - wallContour_Y.Min()) ? new Vector3D(0, 1, 0) : new Vector3D(0, -1, 0);
+                            tempWallModel.Children.Add(new RectangleVisual3D { Origin = originPoint1, Length = Math.Max(Math.Abs(onSegmentPoints[0].X - insidePoint.X), Math.Abs(onSegmentPoints[0].Y - insidePoint.Y)), Width = bimWall.Holes[hole_id].Depth + holeModelOffset, Normal = normalPoint1, Material = sidePlaneMaterial, BackMaterial = sidePlaneMaterial });
+                            tempWallModel.Children.Add(new RectangleVisual3D { Origin = originPoint2, Length = Math.Max(Math.Abs(onSegmentPoints[1].X - insidePoint.X), Math.Abs(onSegmentPoints[1].Y - onSegmentPoints[0].Y)), Width = bimWall.Holes[hole_id].Depth + holeModelOffset, Normal = normalPoint2, Material = sidePlaneMaterial, BackMaterial = sidePlaneMaterial });
                         }
                         else
                         {
@@ -802,12 +818,12 @@ namespace WallLine3DView
                     {
                         holeCenter.Z = (0 + bimWall.Holes[hole_id].Depth) / 2;                        
                         Plane3D plane3Ds = new Plane3D();
-                        plane3Ds.Position = new Point3D(holeCenter.X, holeCenter.Y + (holeContour_Y.Max() - holeCenter.Y) + holeModelOffset, holeCenter.Z);
+                        plane3Ds.Position = new Point3D(holeCenter.X, holeCenter.Y + (holeContour_Y.Max() - holeCenter.Y) + 2 * holeModelOffset, holeCenter.Z);
                         plane3Ds.Normal = new Vector3D(0, -1, 0);
                         holesModel.CuttingPlanes.Add(plane3Ds);
 
                         plane3Ds = new Plane3D();
-                        plane3Ds.Position = new Point3D(holeCenter.X, holeCenter.Y + (holeContour_Y.Min() - holeCenter.Y) - holeModelOffset, holeCenter.Z);
+                        plane3Ds.Position = new Point3D(holeCenter.X, holeCenter.Y + (holeContour_Y.Min() - holeCenter.Y) - 2 * holeModelOffset, holeCenter.Z);
                         plane3Ds.Normal = new Vector3D(0, 1, 0);
                         holesModel.CuttingPlanes.Add(plane3Ds);
 
@@ -832,14 +848,14 @@ namespace WallLine3DView
                         holesModel.CuttingPlanes.Add(plane3Ds);
 
                         tempWallModel.Children.Add(holesModel);
-                        tempWallModel.Children.Add(new RectangleVisual3D { Origin = new Point3D(holeCenter.X, holeCenter.Y, holeCenter.Z + bimWall.Holes[hole_id].Depth / 2 + holeModelOffset), Length = holeContour_X.Max() - holeContour_X.Min(), Width = holeContour_Y.Max() - holeContour_Y.Min(), Normal = new Vector3D(0, 0, 1), Material = planMaterial, BackMaterial = planMaterial });
+                        tempWallModel.Children.Add(new RectangleVisual3D { Origin = new Point3D(holeCenter.X, holeCenter.Y, holeCenter.Z + bimWall.Holes[hole_id].Depth / 2 + holeModelOffset), Length = holeContour_X.Max() - holeContour_X.Min(), Width = holeContour_Y.Max() - holeContour_Y.Min(), Normal = new Vector3D(0, 0, -1), Material = planMaterial, BackMaterial = planMaterial });
 
                         Point3D insidePoint = new Point3D();
                         List<Point3D> onSegmentPoints = new List<Point3D>();
                         bool InsidePointExist = false;
                         for (int i = 0; i < bimWall.Holes[hole_id].Contour.Points.Count(); i++)
                         {
-                            if (InPolygon(new Vector2(bimWall.Holes[hole_id].Contour.Points[i].X, bimWall.Holes[hole_id].Contour.Points[i].Y), holeContour, out bool onBoundary))
+                            if (InPolygon(new Vector2(bimWall.Holes[hole_id].Contour.Points[i].X, bimWall.Holes[hole_id].Contour.Points[i].Y), wallContour, out bool onBoundary))
                             { insidePoint = holePoints[i]; InsidePointExist = true; }
                             for (int j = 0; j < bimWall.Contour.Points.Length; j++)
                             {
@@ -849,8 +865,33 @@ namespace WallLine3DView
                         }
                         if (InsidePointExist)
                         {
-                            tempWallModel.Children.Add(new RectangleVisual3D { Origin = new Point3D(holeContour_X.Min(), holeCenter.Y, holeCenter.Z - (bimWall.Thickness - bimWall.Holes[hole_id].Depth) / 2 - holeModelOffset), Length = holeContour_Y.Max() - holeContour_Y.Min(), Width = bimWall.Thickness, Normal = new Vector3D(1, 0, 0), Material = planMaterial });
+                            //if (onSegmentPoints.Count == 1)
+                            //{
+                            //    for (int s = 1; s < wallContour_X.Count; s++)
+                            //    {
+                            //        if (!OnSegment(new Vector2((float)wallContour_X[s], (float)wallContour_Y[s]), new Vector2((float)wallContour_X[s - 1], (float)wallContour_Y[s - 1]), new Vector2((float)onSegmentPoints[0].X, (float)onSegmentPoints[0].Y))
+                            //            && !OnSegment(new Vector2((float)wallContour_X[s], (float)wallContour_Y[s]), new Vector2((float)wallContour_X[(s + 1) % wallContour_X.Count], (float)wallContour_Y[(s + 1) % wallContour_Y.Count]), new Vector2((float)onSegmentPoints[0].X, (float)onSegmentPoints[0].Y))
+                            //            && (Math.Abs(wallContour_X[s] - onSegmentPoints[0].X) < EPSILON || Math.Abs(wallContour_Y[s] - onSegmentPoints[0].Y) < EPSILON))
+                            //            onSegmentPoints.Add(new Point3D(wallContour_X[s], wallContour_Y[s], onSegmentPoints[0].Z));
 
+                            //    }
+                            //}
+                            ////tempWallModel.Children.Add(new RectangleVisual3D { Origin = new Point3D(holeContour_X.Min(), holeCenter.Y, holeCenter.Z - (bimWall.Thickness - bimWall.Holes[hole_id].Depth) / 2 - holeModelOffset), Length = holeContour_Y.Max() - holeContour_Y.Min(), Width = bimWall.Thickness, Normal = new Vector3D(1, 0, 0), Material = planMaterial });
+                            //Point3D originPoint1 = Math.Abs(onSegmentPoints[0].X - insidePoint.X) < EPSILON ? new Point3D(onSegmentPoints[0].X, (onSegmentPoints[0].Y + insidePoint.Y) / 2, holeCenter.Z) : new Point3D((onSegmentPoints[0].X + insidePoint.X) / 2, onSegmentPoints[0].Y, holeCenter.Z);
+                            //Point3D originPoint2 = Math.Abs(onSegmentPoints[1].X - insidePoint.X) < EPSILON ? new Point3D(onSegmentPoints[1].X, (onSegmentPoints[1].Y + insidePoint.Y) / 2, holeCenter.Z) : new Point3D((onSegmentPoints[1].X + insidePoint.X) / 2, onSegmentPoints[1].Y, holeCenter.Z);
+                            //Vector3D normalPoint1 = new Vector3D();
+                            //Vector3D normalPoint2 = new Vector3D();
+                            //if (Math.Abs(onSegmentPoints[0].X - insidePoint.X) < EPSILON)
+                            //    normalPoint1 = Math.Abs(onSegmentPoints[0].X - wallContour_X.Max()) < Math.Abs(onSegmentPoints[0].X - wallContour_X.Min()) ? new Vector3D(1, 0, 0) : new Vector3D(-1, 0, 0);
+                            //else
+                            //    normalPoint1 = Math.Abs(onSegmentPoints[0].Y - wallContour_Y.Max()) < Math.Abs(onSegmentPoints[0].Y - wallContour_Y.Min()) ? new Vector3D(0, 1, 0) : new Vector3D(0, -1, 0);
+
+                            //if (Math.Abs(onSegmentPoints[1].X - insidePoint.X) < EPSILON)
+                            //    normalPoint2 = Math.Abs(onSegmentPoints[1].X - wallContour_X.Max()) < Math.Abs(onSegmentPoints[1].X - wallContour_X.Min()) ? new Vector3D(1, 0, 0) : new Vector3D(-1, 0, 0);
+                            //else
+                            //    normalPoint2 = Math.Abs(onSegmentPoints[1].Y - wallContour_Y.Max()) < Math.Abs(onSegmentPoints[1].Y - wallContour_Y.Min()) ? new Vector3D(0, 1, 0) : new Vector3D(0, -1, 0);
+                            //tempWallModel.Children.Add(new RectangleVisual3D { Origin = originPoint1, Length = Math.Max(Math.Abs(onSegmentPoints[0].X - insidePoint.X), Math.Abs(onSegmentPoints[0].Y - insidePoint.Y)), Width = bimWall.Holes[hole_id].Depth + holeModelOffset, Normal = normalPoint1, Material = sidePlaneMaterial, BackMaterial = sidePlaneMaterial });
+                            //tempWallModel.Children.Add(new RectangleVisual3D { Origin = originPoint2, Length = Math.Max(Math.Abs(onSegmentPoints[1].X - insidePoint.X), Math.Abs(onSegmentPoints[1].Y - onSegmentPoints[0].Y)), Width = bimWall.Holes[hole_id].Depth + holeModelOffset, Normal = normalPoint2, Material = sidePlaneMaterial, BackMaterial = sidePlaneMaterial });
                         }
                         else
                         {
@@ -886,6 +927,49 @@ namespace WallLine3DView
             wallModel = new ModelVisual3D();
             wallModel = wallHolesModel;
             return true;
+        }
+
+        private void slice_wall_view_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void slice_view_Click(object sender, RoutedEventArgs e)
+        {
+            helixViewport.Children.RemoveAt(helixViewport.Children.Count - 1);//window can be refresh after button click 
+            ReadJSONFile readJSONFile = new ReadJSONFile();
+            readJSONFile.ReadJSONFileLocal(jsonFilePath.Text, out BimWall bimWall);
+            ModelVisual3D wallFinalModel = new ModelVisual3D();
+
+            StLReader stLReader = new StLReader();
+
+            SliceModelCreater(bimWall, out ModelVisual3D wallModel);
+            //WallModelCreater(bimWall, out ModelVisual3D wallModel);
+
+            HoleModelCreater(bimWall, wallModel, out ModelVisual3D wallHoleModel);
+            RebarSlotModelCreater(bimWall, wallModel);
+            ConeModelCreater(bimWall, wallModel);
+            RebarMountModelCreater(bimWall, wallModel);
+
+            wallFinalModel.Children.Add(wallHoleModel);
+            helixViewport.Children.Add(wallFinalModel);
+        }
+
+        private void wall_view_Click(object sender, RoutedEventArgs e)
+        {
+            helixViewport.Children.RemoveAt(helixViewport.Children.Count - 1);//window can be refresh after button click 
+            ReadJSONFile readJSONFile = new ReadJSONFile();
+            readJSONFile.ReadJSONFileLocal(jsonFilePath.Text, out BimWall bimWall);
+            ModelVisual3D wallFinalModel = new ModelVisual3D();
+                      
+            WallModelCreater(bimWall, out ModelVisual3D wallModel);
+            HoleModelCreater(bimWall, wallModel, out ModelVisual3D wallHoleModel);
+            RebarSlotModelCreater(bimWall, wallModel);
+            ConeModelCreater(bimWall, wallModel);
+            RebarMountModelCreater(bimWall, wallModel);
+
+            wallFinalModel.Children.Add(wallHoleModel);
+            helixViewport.Children.Add(wallFinalModel);
         }
     }
 }
